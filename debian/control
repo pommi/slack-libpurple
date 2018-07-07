@@ -1,0 +1,13 @@
+Source: slack-libpurple
+Section: net
+Priority: optional
+Maintainer: Pim van den Berg <pim.van.den.berg@mendix.com>
+Build-Depends: libpurple-dev, debhelper (>= 8)
+Standards-Version: 3.9.3
+Vcs-Git: git://github.com/pommi/slack-libpurple.git
+
+Package: slack-libpurple
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Suggests: bitlbee, bitlbee-libpurple
+Description: A Slack protocol plugin for libpurple IM clients.

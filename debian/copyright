@@ -1,0 +1,8 @@
+Files: *
+Copyright: 2016 Valery Golenkov
+           2017-2018 Dylan Simon
+License: GPL-2+
+
+Files: debian/*
+Copyright: 2018 Pim van den Berg
+License: GPL-2+
