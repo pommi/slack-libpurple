@@ -298,8 +298,8 @@ static void slack_attachment_to_html(GString *html, SlackAccount *sa, json_value
 			g_string_append_printf(html,
 				"<br />%s<b>%s</b>: <i>%s</i>",
 				attachment_prefix->str,
-				(title == NULL) ? "Unknown Field Title" : title,
-				(value == NULL) ? "Unknown Field Value" : value
+				title ?: "Unknown Field Title",
+				value ?: "Unknown Field Value"
 			);
 		}
 	}
@@ -318,8 +318,21 @@ static void slack_attachment_to_html(GString *html, SlackAccount *sa, json_value
 	g_string_free(attachment_prefix, TRUE);
 }
 
+static void slack_file_to_html(GString *html, SlackAccount *sa, json_value *file) {
+	char *title = json_get_prop_strptr(file, "title");
+	char *url = json_get_prop_strptr(file, "url_private");
+	if (!url)
+		url = json_get_prop_strptr(file, "permalink");
+
+	g_string_append_printf(html, "<br/>%s<a href=\"%s\">%s</a>",
+		purple_account_get_string(sa->account, "attachment_prefix", "▎ "),
+		url ?: "",
+		title ?: "file");
+}
+
 void slack_json_to_html(GString *html, SlackAccount *sa, json_value *message, PurpleMessageFlags *flags) {
 	const char *subtype = json_get_prop_strptr(message, "subtype");
+	int i;
 	
 	if (flags && json_get_prop_boolean(message, "hidden", FALSE))
 		*flags |= PURPLE_MESSAGE_INVISIBLE;
@@ -331,10 +344,15 @@ void slack_json_to_html(GString *html, SlackAccount *sa, json_value *message, Pu
 
 	slack_message_to_html(html, sa, json_get_prop_strptr(message, "text"), flags, NULL);
 
+	json_value *files = json_get_prop_type(message, "files", array);
+	if (files)
+		for (i=0; i < files->u.array.length; i++)
+			slack_file_to_html(html, sa, files->u.array.values[i]);
+
 	// If there are attachements, show them.
 	json_value *attachments = json_get_prop_type(message, "attachments", array);
 	if (attachments)
-		for (int i=0; i < attachments->u.array.length; i++)
+		for (i=0; i < attachments->u.array.length; i++)
 			slack_attachment_to_html(html, sa, attachments->u.array.values[i]);
 }
 
