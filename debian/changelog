@@ -1,3 +1,9 @@
+slack-libpurple (0.0~git20181221.2cd0a7a-1) unstable; urgency=medium
+
+  * Update to 2cd0a7a [Remove old commented out code that is no longer used.]
+
+ -- Pim van den Berg <pim.van.den.berg@mendix.com>  Fri, 21 Dec 2018 16:27:40 +0100
+
 slack-libpurple (0.0~git20180803.6ce21a15-1) unstable; urgency=medium
 
   * Update to 6ce21a15 [Merge pull request #78 from fredcooke/master]
