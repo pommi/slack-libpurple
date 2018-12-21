@@ -277,12 +277,17 @@ static void send_chat_cb(SlackAccount *sa, gpointer data, json_value *json, cons
 		return;
 	}
 
-	GString *html = g_string_new(NULL);
-	slack_json_to_html(html, sa, json, &send->flags);
-	time_t mt = slack_parse_time(json_get_prop(json, "ts"));
-	serv_got_chat_in(sa->gc, send->cid, purple_connection_get_display_name(sa->gc), send->flags, html->str, mt);
+	json_value *ts = json_get_prop(json, "ts");
+	const char *tss = json_get_strptr(ts);
+	/* if we've already received this sent message, don't re-display it (#79) */
+	if (slack_ts_cmp(tss, send->chan->object.last_mesg) != 0) {
+		GString *html = g_string_new(NULL);
+		slack_json_to_html(html, sa, json, &send->flags);
+		time_t mt = slack_parse_time(ts);
+		serv_got_chat_in(sa->gc, send->cid, purple_connection_get_display_name(sa->gc), send->flags, html->str, mt);
+		g_string_free(html, TRUE);
+	}
 	send_chat_free(send);
-	g_string_free(html, TRUE);
 }
 
 int slack_chat_send(PurpleConnection *gc, int cid, const char *msg, PurpleMessageFlags flags) {

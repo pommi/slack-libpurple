@@ -12,6 +12,7 @@
 #include "slack.h"
 #include "slack-api.h"
 #include "slack-rtm.h"
+#include "slack-json.h"
 #include "slack-user.h"
 #include "slack-im.h"
 #include "slack-channel.h"
@@ -28,18 +29,32 @@ static GList *slack_status_types(G_GNUC_UNUSED PurpleAccount *acct) {
 	GList *types = NULL;
 
 	types = g_list_append(types,
-		purple_status_type_new(PURPLE_STATUS_AVAILABLE, "active", "active", TRUE));
+		purple_status_type_new_with_attrs(PURPLE_STATUS_AVAILABLE, "active", "active",
+		TRUE, TRUE, FALSE,
+		"message", "Message", purple_value_new(PURPLE_TYPE_STRING),
+		NULL));
 
 	types = g_list_append(types,
-		purple_status_type_new(PURPLE_STATUS_AWAY, "away", "away", TRUE));
+		purple_status_type_new_with_attrs(PURPLE_STATUS_AWAY, "away", "away",
+		TRUE, TRUE, FALSE,
+		"message", "Message", purple_value_new(PURPLE_TYPE_STRING),
+		NULL));
 
 	/* Even though slack never says anyone is offline, we need this status.
 	 * (Maybe could treat deleted users as this?)
 	 */
-	types = g_list_append(types,
-		purple_status_type_new(PURPLE_STATUS_OFFLINE, NULL, NULL, TRUE));
+	types = g_list_append(types, purple_status_type_new_with_attrs(
+		PURPLE_STATUS_OFFLINE, NULL, NULL,
+		TRUE, TRUE, FALSE, "message", "Message",
+		purple_value_new(PURPLE_TYPE_STRING), NULL));
 
 	return types;
+}
+
+static void slack_set_profile(SlackAccount *sa, gpointer data, json_value *json, const char *error) {
+	GString *profile_json = data;
+	slack_api_call(sa, NULL, NULL, "users.profile.set", "profile", profile_json->str, NULL);
+	g_string_free(profile_json, TRUE);
 }
 
 static void slack_set_status(PurpleAccount *account, PurpleStatus *status) {
@@ -49,10 +64,24 @@ static void slack_set_status(PurpleAccount *account, PurpleStatus *status) {
 	SlackAccount *sa = gc->proto_data;
 	g_return_if_fail(sa);
 
-	if (purple_status_is_active(status))
-		slack_api_call(sa, NULL, NULL, "users.setActive", NULL);
+	/* Set status */
+	const char *presence;
+	if (!purple_status_is_active(status) ||
+			purple_status_type_get_primitive(purple_status_get_type(status)) == PURPLE_STATUS_AWAY)
+		presence = "away";
 	else
-		slack_api_call(sa, NULL, NULL, "users.setPresence", "presence", "away", NULL);
+		presence = "auto";
+
+	/* Set message */
+	const char *message = purple_status_get_attr_string(status, "message");
+	GString *profile_json = g_string_new("{\"status_text\":");
+	if (message)
+		append_json_string(profile_json, message);
+	else
+		g_string_append(profile_json, "\"\"");
+	g_string_append(profile_json, ",\"status_emoji\":\"\"}");
+
+	slack_api_call(sa, slack_set_profile, profile_json, "users.setPresence", "presence", presence, NULL);
 }
 
 static GList *slack_chat_info(PurpleConnection *gc) {

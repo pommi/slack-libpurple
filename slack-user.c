@@ -69,6 +69,10 @@ SlackUser *slack_user_update(SlackAccount *sa, json_value *json) {
 
 	json_value *profile = json_get_prop_type(json, "profile", object);
 	if (profile) {
+		const char *display = json_get_prop_strptr1(profile, "display_name");
+		if (display)
+			serv_got_alias(sa->gc, name, display);
+
 		const char *status = json_get_prop_strptr1(profile, "status_text") ?: json_get_prop_strptr1(profile, "current_status");
 		g_free(user->status);
 		user->status = g_strdup(status);
@@ -267,14 +271,12 @@ static void avatar_cb(G_GNUC_UNUSED PurpleUtilFetchUrlData *fetch, gpointer data
 	g_return_if_fail(user);
 	if (error) {
 		purple_debug_warning("slack", "avatar download failed: %s\n", error);
-		g_object_unref(user);
-		return;
+	} else {
+		gpointer icon_data = g_memdup(buf, len);
+		purple_buddy_icons_set_for_user(sa->account, user->object.name, icon_data, len, user->avatar_hash);
 	}
 
-	gpointer icon_data = g_memdup(buf, len);
-	purple_buddy_icons_set_for_user(sa->account, user->object.name, icon_data, len, user->avatar_hash);
 	g_object_unref(user);
-
 	avatar_load_next(sa);
 }
 
