@@ -134,10 +134,14 @@ static void rtm_cb(PurpleWebsocket *ws, gpointer data, PurpleWebsocketOp op, con
 }
 
 static gboolean ping_timer(gpointer data) {
-	PurpleWebsocket *rtm = data;
+	SlackAccount *sa = data;
 
-	/* we don't care about the response (at this point) so just send a uni-directional PONG */
-	purple_websocket_send(rtm, PURPLE_WEBSOCKET_PONG, NULL, 0);
+	PurplePresence *pres = purple_account_get_presence(sa->account);
+	if (pres && purple_presence_get_idle_time(pres) == 0)
+		slack_rtm_send(sa, NULL, NULL, "tickle", NULL);
+	else
+		/* we don't care about the response (at this point) so just send a uni-directional PONG */
+		purple_websocket_send(sa->rtm, PURPLE_WEBSOCKET_PONG, NULL, 0);
 	return TRUE;
 }
 
@@ -184,7 +188,7 @@ static void rtm_connect_cb(SlackAccount *sa, gpointer data, json_value *json, co
 	purple_debug_info("slack", "RTM URL: %s\n", url);
 	sa->rtm = purple_websocket_connect(sa->account, url, NULL, rtm_cb, sa);
 
-	sa->ping_timer = purple_timeout_add_seconds(60, ping_timer, sa->rtm);
+	sa->ping_timer = purple_timeout_add_seconds(60, ping_timer, sa);
 }
 
 void slack_rtm_cancel(SlackRTMCall *call) {
@@ -194,6 +198,7 @@ void slack_rtm_cancel(SlackRTMCall *call) {
 }
 
 void slack_rtm_send(SlackAccount *sa, SlackRTMCallback *callback, gpointer user_data, const char *type, ...) {
+	g_return_if_fail(sa->rtm);
 	guint id = ++sa->rtm_id;
 
 	GString *json = g_string_new(NULL);
