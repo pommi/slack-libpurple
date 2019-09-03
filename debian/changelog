@@ -1,3 +1,9 @@
+slack-libpurple (0.0~git20190903.be97802c-1) unstable; urgency=medium
+
+  * Update to be97802c [Fix #102: set_idle is called from "signing-off"]
+
+ -- Pim van den Berg <pim.van.den.berg@mendix.com>  Tue, 03 Sep 2019 09:22:29 +0200
+
 slack-libpurple (0.0~git20181221.2cd0a7a-1) unstable; urgency=medium
 
   * Update to 2cd0a7a [Remove old commented out code that is no longer used.]
